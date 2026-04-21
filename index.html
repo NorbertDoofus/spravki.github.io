@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Калькулятор тормозов УЗ</title>
+
+<style>
+:root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --text: #e2e8f0;
+    --accent: #38bdf8;
+    --ok: #22c55e;
+    --gap: 12px;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 12px;
+}
+
+.container {
+    width: 100%;
+    max-width: 420px;
+    background: var(--card);
+    padding: 18px;
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    line-height: 1.4;
+}
+
+h2 {
+    text-align: center;
+    color: var(--accent);
+    margin: 0 0 10px 0;
+    font-size: 20px;
+}
+
+label {
+    display: block;
+    margin-top: var(--gap);
+    font-size: 14px;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    margin-top: 6px;
+    border-radius: 6px;
+    border: none;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    margin-top: calc(var(--gap) * 1.5);
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.toggle {
+    margin-top: calc(var(--gap) * 1.5);
+    padding: 10px;
+    background: #020617;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.result {
+    margin-top: calc(var(--gap) * 1.5);
+    padding: 12px;
+    background: #020617;
+    border-radius: 8px;
+    font-size: 14px;
+    overflow-x: auto;
+}
+
+.highlight {
+    color: var(--ok);
+}
+
+.hidden {
+    display: none;
+}
+
+table {
+    width: 100%;
+    margin-top: 10px;
+    border-collapse: collapse;
+    font-size: 12px;
+    min-width: 320px;
+}
+
+td, th {
+    border: 1px solid #334155;
+    padding: 6px;
+    text-align: center;
+}
+
+/* MOBILE */
+@media (max-width: 480px) {
+    h2 { font-size: 18px; }
+    button { padding: 14px; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h2>🚆 Калькулятор тормозов</h2>
+
+<label>Вес поезда (т):</label>
+<input type="number" id="weight">
+
+<label>Груженые вагоны:</label>
+<input type="number" id="loaded">
+
+<label>Порожние вагоны:</label>
+<input type="number" id="empty">
+
+<div class="toggle" onclick="togglePassenger()">
+    ▶ Пассажирские вагоны
+</div>
+
+<div id="passengerBlock" class="hidden">
+
+    <label>42–48 т:</label>
+    <input type="number" id="p1">
+
+    <label>48–53 т:</label>
+    <input type="number" id="p2">
+
+    <label>>53 т:</label>
+    <input type="number" id="p3">
+
+</div>
+
+<button onclick="calc()">Рассчитать</button>
+
+<div class="result" id="result"></div>
+</div>
+
+<script>
+
+function togglePassenger() {
+    document.getElementById("passengerBlock").classList.toggle("hidden");
+}
+
+function calc() {
+
+let weight = +document.getElementById("weight").value || 0;
+let loaded = +document.getElementById("loaded").value || 0;
+let empty = +document.getElementById("empty").value || 0;
+
+let p1 = +document.getElementById("p1").value || 0;
+let p2 = +document.getElementById("p2").value || 0;
+let p3 = +document.getElementById("p3").value || 0;
+
+// --------------------
+let freight = loaded + empty;
+let passenger = p1 + p2 + p3;
+let totalWagons = freight + passenger;
+
+let onlyPassenger = (freight === 0 && passenger > 0);
+let mixed = (freight > 0 && passenger > 0);
+
+// --------------------
+// ВЕС
+// --------------------
+let baseWeight = weight;
+let addWeight = (totalWagons <= 5 || onlyPassenger) ? 123 : 0;
+let finalWeight = baseWeight + addWeight;
+
+// --------------------
+// ОСИ
+// --------------------
+let axlesLoaded = loaded * 4;
+let axlesEmpty = empty * 4;
+
+let axlesP1 = p1 * 4;
+let axlesP2 = p2 * 4;
+let axlesP3 = p3 * 4;
+
+let passengerAxles = axlesP1 + axlesP2 + axlesP3;
+
+let baseAxles = axlesLoaded + axlesEmpty + passengerAxles;
+
+let locoAxles = (totalWagons <= 5 || onlyPassenger) ? 6 : 0;
+
+let axles = baseAxles + locoAxles;
+
+// --------------------
+// ПОТРЕБНОЕ НАЖАТИЕ
+// --------------------
+let need = onlyPassenger ? finalWeight * 0.6 : finalWeight * 0.33;
+
+// --------------------
+// РУЧНЫЕ ОСИ
+// --------------------
+let handAxles;
+
+if (mixed) {
+    handAxles = finalWeight * 0.006;
+} else if (onlyPassenger) {
+    handAxles = passengerAxles + 2;
+} else {
+    handAxles = finalWeight * 0.006;
+}
+
+// --------------------
+// НАЖАТИЯ
+// --------------------
+let pressEmpty = axlesEmpty * 3.5;
+let pressLoaded = axlesLoaded * 7;
+
+let pressP1 = axlesP1 * 8;
+let pressP2 = axlesP2 * 9;
+let pressP3 = axlesP3 * 10;
+
+let pressLoco = locoAxles * 11;
+
+let totalPress =
+    pressEmpty + pressLoaded + pressP1 + pressP2 + pressP3 + pressLoco;
+
+// --------------------
+// ВЫВОД
+// --------------------
+document.getElementById("result").innerHTML = `
+<b>Вес:</b> ${finalWeight.toFixed(2)} т<br>
+<b>Осей:</b> ${axles}<br>
+<b>Потребное:</b> <span class="highlight">${need.toFixed(2)}</span><br>
+<b>Ручные:</b> <span class="highlight">${handAxles.toFixed(2)}</span><br>
+<b>Факт. нажатие:</b> ${totalPress.toFixed(2)}
+
+<br><br>
+
+<table>
+<tr>
+<th>Коэф</th>
+<th>Оси</th>
+<th>Нажатие</th>
+</tr>
+
+${axlesEmpty ? `<tr><td>3.5</td><td>${axlesEmpty}</td><td>${pressEmpty.toFixed(2)}</td></tr>` : ""}
+${axlesLoaded ? `<tr><td>7</td><td>${axlesLoaded}</td><td>${pressLoaded.toFixed(2)}</td></tr>` : ""}
+${axlesP1 ? `<tr><td>8</td><td>${axlesP1}</td><td>${pressP1.toFixed(2)}</td></tr>` : ""}
+${axlesP2 ? `<tr><td>9</td><td>${axlesP2}</td><td>${pressP2.toFixed(2)}</td></tr>` : ""}
+${axlesP3 ? `<tr><td>10</td><td>${axlesP3}</td><td>${pressP3.toFixed(2)}</td></tr>` : ""}
+${locoAxles ? `<tr><td>11</td><td>${locoAxles}</td><td>${pressLoco.toFixed(2)}</td></tr>` : ""}
+
+<tr>
+<th>Всего</th>
+<th>${axles}</th>
+<th>${totalPress.toFixed(2)}</th>
+</tr>
+
+</table>
+`;
+}
+
+</script>
+
+</body>
+</html>
