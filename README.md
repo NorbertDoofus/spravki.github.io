@@ -1,2 +1,0 @@
-# spravki.github.io
-Spravki
